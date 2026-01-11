@@ -1,0 +1,2 @@
+INSERT IGNORE INTO tb_roles (name) VALUES ('ROLE_ADMIN');
+INSERT IGNORE INTO tb_roles (name) VALUES ('ROLE_BASIC');
