@@ -30,6 +30,7 @@ Gere as chaves localmente:
 ```bash
 openssl genrsa -out app.key 2048
 openssl rsa -in app.key -pubout -out app.pub
+```
 
 ### 🧾 3️⃣ `application.properties` de exemplo
 
