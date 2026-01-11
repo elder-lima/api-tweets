@@ -1,4 +1,4 @@
-## 🔐 API com Spring Security e JWT
+## 🔐 API REST com Spring Security, OAuth2 e JWT
 
 Este projeto é uma API REST construída com **Spring Boot**, com foco em autenticação e autorização seguindo boas práticas utilizadas em aplicações modernas.
 
