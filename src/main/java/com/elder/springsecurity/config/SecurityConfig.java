@@ -24,36 +24,42 @@ import org.springframework.security.web.SecurityFilterChain;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
 
-@Configuration
-@EnableWebSecurity
-@EnableMethodSecurity
+@Configuration // define Beans de configuração. Equivale a um “arquivo de configuração Java”.
+@EnableWebSecurity // Ativa o Spring Security para a aplicação web, Sem isso, o SecurityFilterChain não funciona
+@EnableMethodSecurity // Permite segurança em nível de metodo, exemplo: para deletar algo tem que ser ROLE_ADMIN
 public class SecurityConfig {
 
-    private RSAPublicKey publicKey;
+    private RSAPublicKey publicKey; // Public Key → valida o token (quem consome). Quem valida usa apenas a chave pública
 
-    private RSAPrivateKey privateKey;
+    private RSAPrivateKey privateKey; // Private Key → assina o token (quem emite). Quem gera o token usa a chave privada
 
     public SecurityConfig(RSAPublicKey publicKey, RSAPrivateKey privateKey) {
         this.publicKey = publicKey;
         this.privateKey = privateKey;
     }
 
+    // Esse metodo define TODA a política de segurança da API.
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 
         http
                 .authorizeHttpRequests(authorize -> authorize
-                        .requestMatchers(HttpMethod.POST, "/login").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/users").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/login").permitAll() // acesso livre (login gera o token)
+                        .requestMatchers(HttpMethod.POST, "/users").permitAll() // acesso livre (criar usuario)
                         .anyRequest().authenticated()
                 )
-                .csrf(csrf -> csrf.disable())
+                .csrf(csrf -> csrf.disable()) // API é stateless, CSRF é desnecessário
+
+                // Essa API é um OAuth2 Resource Server que valida JWT. O Spring automaticamente extrai o token do header, Valida: assinatura, expiração e integridade e Cria um Authentication no contexto de segurança.
                 .oauth2ResourceServer(oauth2 -> oauth2.jwt(Customizer.withDefaults()))
+                // Stateless, nenhuma sessão HTTP é criada, cada request precisa do JWT.
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
 
+        // Finaliza e registra o filtro de segurança.
         return http.build();
     }
 
+    // Gerar o token
     @Bean
     public JwtEncoder jwtEncoder() {
         JWK jwk = new RSAKey.Builder(publicKey).privateKey(privateKey).build();
@@ -61,12 +67,13 @@ public class SecurityConfig {
         return new NimbusJwtEncoder(jwks);
     }
 
-    // Descriptografia do JWT
+    // Validar o token, verifica a assinatura do JWT, usa somente a chave pública
     @Bean
     public JwtDecoder jwtDecoder() {
         return NimbusJwtDecoder.withPublicKey(publicKey).build();
     }
 
+    // criptografar senha ao salvar no banco
     @Bean
     public BCryptPasswordEncoder bCryptPasswordEncoder() {
         return new BCryptPasswordEncoder();

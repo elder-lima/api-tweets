@@ -18,11 +18,11 @@ import java.time.Instant;
 @RestController
 public class TokenController {
 
-    private final JwtEncoder jwtEncoder;
+    private final JwtEncoder jwtEncoder; // Responsável por gerar (assinar) o JWT, Usa a chave privada RSA
 
     private final UserRepository repository;
 
-    private BCryptPasswordEncoder bCryptPasswordEncoder;
+    private BCryptPasswordEncoder bCryptPasswordEncoder; // Comparar a senha digitada com a senha do banco
 
     public TokenController(JwtEncoder jwtEncoder, UserRepository repository, BCryptPasswordEncoder bCryptPasswordEncoder) {
         this.jwtEncoder = jwtEncoder;
@@ -40,20 +40,23 @@ public class TokenController {
         }
 
         var now = Instant.now();
-        var expiresIn = 300L;
+        var expiresIn = 300L; // token válido por 5 minutos
+
+        // Extração das roles do usuário: ROLE_ADMIN ou ROLE_BASIC
         var roles = user.get().getRoles().stream().map(
                 role -> role.getRoleName().name()
         ).toList();
 
-
+        // Criação das claims do JWT, montando o conteúdo do token.
         var claims = JwtClaimsSet.builder()
-                .issuer("mybackend")
-                .subject(user.get().getUserId().toString())
-                .issuedAt(now)
-                .expiresAt(now.plusSeconds(expiresIn))
+                .issuer("mybackend") // iss. Quem emitiu o token
+                .subject(user.get().getUserId().toString()) // sub. Identidade do usuário, geralmente ID do usuario ou username unico.
+                .issuedAt(now) // iat, Quando foi criado
+                .expiresAt(now.plusSeconds(expiresIn)) // exp, quando o token expira.
                 .claim("scope", roles)
                 .build();
 
+        // Geração do JWT, claims são assinadas com a chave privada, Gera um JWT no formato: HEADER.PAYLOAD.SIGNATURE
         var jwtValue = jwtEncoder.encode(JwtEncoderParameters.from(claims)).getTokenValue();
 
         return ResponseEntity.ok(new LoginResponseDTO(jwtValue, expiresIn));
